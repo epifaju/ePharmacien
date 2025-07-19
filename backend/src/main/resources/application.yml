@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: epharmacien-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/epharmacien}
+    username: ${SPRING_DATASOURCE_USERNAME:epharmacien}
+    password: ${SPRING_DATASOURCE_PASSWORD:epharmacien123}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  security:
+    user:
+      name: admin
+      password: admin123
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:epharmacien-secret-key-2024}
+  expiration: 86400000 # 24 hours
+
+# Logging
+logging:
+  level:
+    com.epharmacien: DEBUG
+    org.springframework.security: DEBUG

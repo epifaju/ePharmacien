@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  # Base de données PostgreSQL avec PostGIS
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: epharmacien-db
+    environment:
+      POSTGRES_DB: epharmacien
+      POSTGRES_USER: epharmacien
+      POSTGRES_PASSWORD: epharmacien123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - epharmacien-network
+
+  # Backend Spring Boot
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: epharmacien-backend
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/epharmacien
+      SPRING_DATASOURCE_USERNAME: epharmacien
+      SPRING_DATASOURCE_PASSWORD: epharmacien123
+      JWT_SECRET: epharmacien-secret-key-2024
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - postgres
+    networks:
+      - epharmacien-network
+    volumes:
+      - ./backend:/app
+      - /app/target
+
+  # Frontend Ionic React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: epharmacien-frontend
+    ports:
+      - "3002:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8082/api
+      REACT_APP_LEAFLET_TILES: https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+    depends_on:
+      - backend
+    networks:
+      - epharmacien-network
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+
+volumes:
+  postgres_data:
+
+networks:
+  epharmacien-network:
+    driver: bridge
