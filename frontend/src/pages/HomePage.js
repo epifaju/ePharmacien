@@ -21,6 +21,9 @@ import {
   IonItem,
   IonLabel,
   IonNote,
+  IonLoading,
+  IonToast,
+  IonButtons,
 } from "@ionic/react";
 import {
   locationOutline,
@@ -28,6 +31,7 @@ import {
   navigateOutline,
   mapOutline,
   medicalOutline,
+  refreshOutline,
 } from "ionicons/icons";
 
 const HomePage = () => {
@@ -37,7 +41,7 @@ const HomePage = () => {
     {
       id: 1,
       nom: "Pharmacie Centrale",
-      adresse: "123 Avenue de la République",
+      adresse: "123 Rue de la Paix",
       ville: "Paris",
       ouverte: true,
       garde: false,
@@ -49,7 +53,7 @@ const HomePage = () => {
     {
       id: 2,
       nom: "Pharmacie de Garde - Montreuil",
-      adresse: "45 Rue de la Paix",
+      adresse: "45 Avenue des Champs",
       ville: "Montreuil",
       ouverte: true,
       garde: true,
@@ -61,7 +65,7 @@ const HomePage = () => {
     {
       id: 3,
       nom: "Pharmacie de Nuit - Saint-Denis",
-      adresse: "78 Boulevard de la Liberté",
+      adresse: "78 Boulevard Saint-Germain",
       ville: "Saint-Denis",
       ouverte: true,
       garde: false,
@@ -70,13 +74,69 @@ const HomePage = () => {
       fermeture: "08:00",
       distance: "3.8 km",
     },
+    {
+      id: 4,
+      nom: "Pharmacie du Sud",
+      adresse: "321 Rue de Rivoli",
+      ville: "Paris",
+      ouverte: true,
+      garde: false,
+      nuit: false,
+      ouverture: "09:00",
+      fermeture: "19:00",
+      distance: "1.2 km",
+    },
+    {
+      id: 5,
+      nom: "Pharmacie de Garde Est",
+      adresse: "654 Rue du Faubourg",
+      ville: "Paris",
+      ouverte: true,
+      garde: true,
+      nuit: false,
+      ouverture: "24h/24",
+      fermeture: "24h/24",
+      distance: "4.5 km",
+    },
   ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const filters = [
     { id: "garde", label: "De Garde", color: "warning" },
     { id: "nuit", label: "De Nuit", color: "secondary" },
     { id: "ouverte", label: "Ouvertes", color: "success" },
   ];
+
+  // Charger les pharmacies (données statiques pour l'instant)
+  const loadPharmacies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Simulation d'un délai de chargement
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Pour l'instant, on utilise les données statiques
+      // TODO: Remplacer par l'appel API quand le backend sera corrigé
+      // const data = await pharmacyService.getAllPharmacies(filters);
+      // setPharmacies(data);
+    } catch (err) {
+      console.error("Erreur lors du chargement des pharmacies:", err);
+      setError("Erreur lors du chargement des pharmacies");
+      setToastMessage("Erreur de connexion au serveur");
+      setShowToast(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les pharmacies au montage du composant
+  useEffect(() => {
+    loadPharmacies();
+  }, []);
 
   const toggleFilter = (filterId) => {
     setActiveFilters((prev) =>
@@ -87,9 +147,34 @@ const HomePage = () => {
   };
 
   const filteredPharmacies = pharmacies.filter((pharmacy) => {
+    // Filtre par recherche
+    if (
+      searchText &&
+      !pharmacy.nom.toLowerCase().includes(searchText.toLowerCase()) &&
+      !pharmacy.ville.toLowerCase().includes(searchText.toLowerCase())
+    ) {
+      return false;
+    }
+
+    // Filtre par statut
     if (activeFilters.length === 0) return true;
     return activeFilters.some((filter) => pharmacy[filter]);
   });
+
+  const handleRefresh = () => {
+    loadPharmacies();
+  };
+
+  const handleOpenDirections = (pharmacy) => {
+    // Construire l'URL Google Maps avec l'itinéraire
+    const address = encodeURIComponent(
+      `${pharmacy.adresse}, ${pharmacy.ville}`
+    );
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${address}`;
+
+    // Ouvrir dans un nouvel onglet
+    window.open(mapsUrl, "_blank");
+  };
 
   return (
     <IonPage>
@@ -99,6 +184,11 @@ const HomePage = () => {
             <IonIcon icon={medicalOutline} className="mr-2" />
             MonPharmacien+
           </IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={handleRefresh}>
+              <IonIcon icon={refreshOutline} />
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
 
@@ -107,7 +197,7 @@ const HomePage = () => {
         <IonSearchbar
           value={searchText}
           onIonInput={(e) => setSearchText(e.detail.value)}
-          placeholder="Rechercher par ville..."
+          placeholder="Rechercher par nom ou ville..."
           className="mb-4"
         />
 
@@ -130,11 +220,44 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Loading */}
+        <IonLoading isOpen={loading} message="Chargement des pharmacies..." />
+
+        {/* Erreur */}
+        {error && (
+          <IonCard color="danger" className="mb-4">
+            <IonCardContent>
+              <p className="text-white">{error}</p>
+              <IonButton
+                fill="clear"
+                color="light"
+                onClick={loadPharmacies}
+                className="mt-2"
+              >
+                Réessayer
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        )}
+
         {/* Liste des pharmacies */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2">
             Pharmacies trouvées ({filteredPharmacies.length})
           </h3>
+
+          {filteredPharmacies.length === 0 && !loading && !error && (
+            <IonCard>
+              <IonCardContent className="text-center">
+                <p className="text-gray-600">Aucune pharmacie trouvée</p>
+                {searchText && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Essayez de modifier votre recherche
+                  </p>
+                )}
+              </IonCardContent>
+            </IonCard>
+          )}
 
           <IonList>
             {filteredPharmacies.map((pharmacy) => (
@@ -174,9 +297,11 @@ const HomePage = () => {
                         {pharmacy.ouverture} - {pharmacy.fermeture}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {pharmacy.distance}
-                    </div>
+                    {pharmacy.distance && (
+                      <div className="text-sm text-gray-500">
+                        {pharmacy.distance}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2 mt-3">
@@ -188,7 +313,12 @@ const HomePage = () => {
                       <IonIcon icon={navigateOutline} slot="start" />
                       Détails
                     </IonButton>
-                    <IonButton size="small" fill="outline" color="secondary">
+                    <IonButton
+                      size="small"
+                      fill="outline"
+                      color="secondary"
+                      onClick={() => handleOpenDirections(pharmacy)}
+                    >
                       <IonIcon icon={mapOutline} slot="start" />
                       Itinéraire
                     </IonButton>
@@ -205,6 +335,15 @@ const HomePage = () => {
             <IonIcon icon={mapOutline} />
           </IonFabButton>
         </IonFab>
+
+        {/* Toast pour les messages */}
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={3000}
+          position="top"
+        />
       </IonContent>
     </IonPage>
   );

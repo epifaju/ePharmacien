@@ -4,6 +4,7 @@ import com.epharmacien.dto.PharmacyDto;
 import com.epharmacien.service.PharmacyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @RequestMapping("/pharmacies")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Component
 public class PharmacyController {
 
     private final PharmacyService pharmacyService;

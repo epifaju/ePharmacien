@@ -26,22 +26,32 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    /*
+     * @Bean
+     * public SecurityFilterChain securityFilterChain(HttpSecurity http) throws
+     * Exception {
+     * http
+     * .cors().and()
+     * .csrf().disable()
+     * .authorizeHttpRequests(auth -> auth
+     * .anyRequest().permitAll())
+     * .sessionManagement()
+     * .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+     * .and()
+     * .addFilterBefore(jwtAuthenticationFilter(),
+     * UsernamePasswordAuthenticationFilter.class);
+     * 
+     * return http.build();
+     * }
+     */
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().and()
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("GET", "/pharmacies/**").permitAll()
-                        .requestMatchers("POST", "/pharmacies/**").authenticated()
-                        .requestMatchers("PUT", "/pharmacies/**").authenticated()
-                        .requestMatchers("DELETE", "/pharmacies/**").authenticated()
-                        .anyRequest().authenticated())
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                        .anyRequest().permitAll());
 
         return http.build();
     }

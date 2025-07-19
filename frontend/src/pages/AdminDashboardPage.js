@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   IonPage,
   IonHeader,
@@ -26,6 +26,7 @@ import {
   IonToast,
   IonButtons,
   IonBackButton,
+  IonLoading,
 } from "@ionic/react";
 import {
   addOutline,
@@ -39,6 +40,7 @@ import {
   statsChartOutline,
   peopleOutline,
   shieldCheckmarkOutline,
+  refreshOutline,
 } from "ionicons/icons";
 
 const AdminDashboardPage = () => {
@@ -46,7 +48,7 @@ const AdminDashboardPage = () => {
     {
       id: 1,
       nom: "Pharmacie Centrale",
-      adresse: "123 Avenue de la République",
+      adresse: "123 Rue de la Paix",
       ville: "Paris",
       ouverte: true,
       garde: false,
@@ -57,7 +59,7 @@ const AdminDashboardPage = () => {
     {
       id: 2,
       nom: "Pharmacie de Garde - Montreuil",
-      adresse: "45 Rue de la Paix",
+      adresse: "45 Avenue des Champs",
       ville: "Montreuil",
       ouverte: true,
       garde: true,
@@ -68,7 +70,7 @@ const AdminDashboardPage = () => {
     {
       id: 3,
       nom: "Pharmacie de Nuit - Saint-Denis",
-      adresse: "78 Boulevard de la Liberté",
+      adresse: "78 Boulevard Saint-Germain",
       ville: "Saint-Denis",
       ouverte: true,
       garde: false,
@@ -77,11 +79,12 @@ const AdminDashboardPage = () => {
       fermeture: "08:00",
     },
   ]);
-
+  const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [toastColor, setToastColor] = useState("success");
 
   const [newPharmacy, setNewPharmacy] = useState({
     nom: "",
@@ -92,6 +95,8 @@ const AdminDashboardPage = () => {
     ouverte: true,
     garde: false,
     nuit: false,
+    latitude: 48.8566,
+    longitude: 2.3522,
   });
 
   const [notification, setNotification] = useState({
@@ -100,6 +105,29 @@ const AdminDashboardPage = () => {
     type: "info",
   });
 
+  // Charger les pharmacies (données statiques pour l'instant)
+  const loadPharmacies = async () => {
+    try {
+      setLoading(true);
+      // Simulation d'un délai de chargement
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Pour l'instant, on utilise les données statiques
+      // TODO: Remplacer par l'appel API quand le backend sera corrigé
+    } catch (error) {
+      console.error("Erreur lors du chargement des pharmacies:", error);
+      setToastMessage("Erreur lors du chargement des pharmacies");
+      setToastColor("danger");
+      setShowToast(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les pharmacies au montage du composant
+  useEffect(() => {
+    loadPharmacies();
+  }, []);
+
   const stats = {
     total: pharmacies.length,
     ouvertes: pharmacies.filter((p) => p.ouverte).length,
@@ -107,41 +135,84 @@ const AdminDashboardPage = () => {
     nuit: pharmacies.filter((p) => p.nuit).length,
   };
 
-  const handleAddPharmacy = () => {
+  const handleAddPharmacy = async () => {
     if (newPharmacy.nom && newPharmacy.adresse && newPharmacy.ville) {
-      const pharmacy = {
-        ...newPharmacy,
-        id: Date.now(),
-      };
-      setPharmacies((prev) => [...prev, pharmacy]);
-      setNewPharmacy({
-        nom: "",
-        adresse: "",
-        ville: "",
-        ouverture: "08:00",
-        fermeture: "20:00",
-        ouverte: true,
-        garde: false,
-        nuit: false,
-      });
-      setShowAddModal(false);
-      setToastMessage("Pharmacie ajoutée avec succès");
+      try {
+        // Créer une nouvelle pharmacie avec un ID unique
+        const createdPharmacy = {
+          ...newPharmacy,
+          id: Date.now(), // ID unique basé sur le timestamp
+        };
+
+        // Ajouter à la liste locale
+        setPharmacies((prev) => [...prev, createdPharmacy]);
+
+        // Réinitialiser le formulaire
+        setNewPharmacy({
+          nom: "",
+          adresse: "",
+          ville: "",
+          ouverture: "08:00",
+          fermeture: "20:00",
+          ouverte: true,
+          garde: false,
+          nuit: false,
+          latitude: 48.8566,
+          longitude: 2.3522,
+        });
+
+        setShowAddModal(false);
+        setToastMessage("Pharmacie ajoutée avec succès");
+        setToastColor("success");
+        setShowToast(true);
+      } catch (error) {
+        console.error("Erreur lors de l'ajout de la pharmacie:", error);
+        setToastMessage("Erreur lors de l'ajout de la pharmacie");
+        setToastColor("danger");
+        setShowToast(true);
+      }
+    } else {
+      setToastMessage("Veuillez remplir tous les champs obligatoires");
+      setToastColor("warning");
       setShowToast(true);
     }
   };
 
-  const handleDeletePharmacy = (id) => {
-    setPharmacies((prev) => prev.filter((p) => p.id !== id));
-    setToastMessage("Pharmacie supprimée");
-    setShowToast(true);
+  const handleDeletePharmacy = async (id) => {
+    try {
+      // Supprimer de la liste locale
+      setPharmacies((prev) => prev.filter((p) => p.id !== id));
+      setToastMessage("Pharmacie supprimée avec succès");
+      setToastColor("success");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      setToastMessage("Erreur lors de la suppression");
+      setToastColor("danger");
+      setShowToast(true);
+    }
   };
 
-  const handleSendNotification = () => {
+  const handleSendNotification = async () => {
     if (notification.titre && notification.message) {
-      setToastMessage("Notification envoyée aux utilisateurs");
+      try {
+        // Simulation d'envoi de notification
+        console.log("Notification envoyée:", notification);
+        setToastMessage("Notification envoyée aux utilisateurs");
+        setToastColor("success");
+        setShowToast(true);
+        setNotification({ titre: "", message: "", type: "info" });
+        setShowNotificationModal(false);
+      } catch (error) {
+        console.error("Erreur lors de l'envoi de la notification:", error);
+        setToastMessage("Erreur lors de l'envoi de la notification");
+        setToastColor("danger");
+        setShowToast(true);
+      }
+    } else {
+      setToastMessage("Veuillez remplir le titre et le message");
+      setToastColor("warning");
       setShowToast(true);
-      setNotification({ titre: "", message: "", type: "info" });
-      setShowNotificationModal(false);
     }
   };
 
@@ -160,11 +231,17 @@ const AdminDashboardPage = () => {
             <IonButton onClick={() => setShowNotificationModal(true)}>
               <IonIcon icon={notificationsOutline} />
             </IonButton>
+            <IonButton onClick={loadPharmacies}>
+              <IonIcon icon={refreshOutline} />
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
+        {/* Loading */}
+        <IonLoading isOpen={loading} message="Chargement..." />
+
         {/* Statistiques */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <IonCard>
@@ -229,50 +306,70 @@ const AdminDashboardPage = () => {
           </IonCardHeader>
 
           <IonCardContent>
-            <IonList>
-              {pharmacies.map((pharmacy) => (
-                <IonItem key={pharmacy.id}>
-                  <div className="flex-1">
-                    <IonLabel>
-                      <h2 className="font-semibold">{pharmacy.nom}</h2>
-                      <p className="text-sm text-gray-600">
-                        <IonIcon icon={locationOutline} className="mr-1" />
-                        {pharmacy.adresse}, {pharmacy.ville}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <IonIcon icon={timeOutline} className="mr-1" />
-                        {pharmacy.ouverture} - {pharmacy.fermeture}
-                      </p>
-                    </IonLabel>
-                  </div>
+            {pharmacies.length === 0 && !loading ? (
+              <div className="text-center py-8">
+                <IonIcon
+                  icon={medicalOutline}
+                  className="text-4xl text-gray-400 mb-4"
+                />
+                <p className="text-gray-600">Aucune pharmacie enregistrée</p>
+                <IonButton
+                  color="primary"
+                  className="mt-4"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <IonIcon icon={addOutline} slot="start" />
+                  Ajouter la première pharmacie
+                </IonButton>
+              </div>
+            ) : (
+              <IonList>
+                {pharmacies.map((pharmacy) => (
+                  <IonItem key={pharmacy.id}>
+                    <div className="flex-1">
+                      <IonLabel>
+                        <h2 className="font-semibold">{pharmacy.nom}</h2>
+                        <p className="text-sm text-gray-600">
+                          <IonIcon icon={locationOutline} className="mr-1" />
+                          {pharmacy.adresse}, {pharmacy.ville}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <IonIcon icon={timeOutline} className="mr-1" />
+                          {pharmacy.ouverture} - {pharmacy.fermeture}
+                        </p>
+                      </IonLabel>
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    {pharmacy.garde && (
-                      <IonBadge color="warning">Garde</IonBadge>
-                    )}
-                    {pharmacy.nuit && (
-                      <IonBadge color="secondary">Nuit</IonBadge>
-                    )}
-                    {pharmacy.ouverte && !pharmacy.garde && !pharmacy.nuit && (
-                      <IonBadge color="success">Ouverte</IonBadge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {pharmacy.garde && (
+                        <IonBadge color="warning">Garde</IonBadge>
+                      )}
+                      {pharmacy.nuit && (
+                        <IonBadge color="secondary">Nuit</IonBadge>
+                      )}
+                      {pharmacy.ouverte &&
+                        !pharmacy.garde &&
+                        !pharmacy.nuit && (
+                          <IonBadge color="success">Ouverte</IonBadge>
+                        )}
 
-                    <IonButton size="small" fill="clear" color="primary">
-                      <IonIcon icon={createOutline} />
-                    </IonButton>
+                      <IonButton size="small" fill="clear" color="primary">
+                        <IonIcon icon={createOutline} />
+                      </IonButton>
 
-                    <IonButton
-                      size="small"
-                      fill="clear"
-                      color="danger"
-                      onClick={() => handleDeletePharmacy(pharmacy.id)}
-                    >
-                      <IonIcon icon={trashOutline} />
-                    </IonButton>
-                  </div>
-                </IonItem>
-              ))}
-            </IonList>
+                      <IonButton
+                        size="small"
+                        fill="clear"
+                        color="danger"
+                        onClick={() => handleDeletePharmacy(pharmacy.id)}
+                      >
+                        <IonIcon icon={trashOutline} />
+                      </IonButton>
+                    </div>
+                  </IonItem>
+                ))}
+              </IonList>
+            )}
           </IonCardContent>
         </IonCard>
 
@@ -301,7 +398,7 @@ const AdminDashboardPage = () => {
 
           <IonContent className="ion-padding">
             <IonItem>
-              <IonLabel position="stacked">Nom de la pharmacie</IonLabel>
+              <IonLabel position="stacked">Nom de la pharmacie *</IonLabel>
               <IonInput
                 value={newPharmacy.nom}
                 onIonInput={(e) =>
@@ -312,7 +409,7 @@ const AdminDashboardPage = () => {
             </IonItem>
 
             <IonItem>
-              <IonLabel position="stacked">Adresse</IonLabel>
+              <IonLabel position="stacked">Adresse *</IonLabel>
               <IonInput
                 value={newPharmacy.adresse}
                 onIonInput={(e) =>
@@ -326,7 +423,7 @@ const AdminDashboardPage = () => {
             </IonItem>
 
             <IonItem>
-              <IonLabel position="stacked">Ville</IonLabel>
+              <IonLabel position="stacked">Ville *</IonLabel>
               <IonInput
                 value={newPharmacy.ville}
                 onIonInput={(e) =>
@@ -426,7 +523,7 @@ const AdminDashboardPage = () => {
 
           <IonContent className="ion-padding">
             <IonItem>
-              <IonLabel position="stacked">Titre</IonLabel>
+              <IonLabel position="stacked">Titre *</IonLabel>
               <IonInput
                 value={notification.titre}
                 onIonInput={(e) =>
@@ -440,7 +537,7 @@ const AdminDashboardPage = () => {
             </IonItem>
 
             <IonItem>
-              <IonLabel position="stacked">Message</IonLabel>
+              <IonLabel position="stacked">Message *</IonLabel>
               <IonTextarea
                 value={notification.message}
                 onIonInput={(e) =>
@@ -484,6 +581,7 @@ const AdminDashboardPage = () => {
           message={toastMessage}
           duration={3000}
           position="top"
+          color={toastColor}
         />
       </IonContent>
     </IonPage>
